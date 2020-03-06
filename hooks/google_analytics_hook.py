@@ -31,6 +31,8 @@ https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 
 import time
 import os
+import logging
+import httplib2
 
 from airflow.hooks.base_hook import BaseHook
 from airflow import configuration as conf
@@ -61,6 +63,7 @@ class GoogleAnalyticsHook(BaseHook):
             self.client_secrets = self.connection.extra_dejson['client_secrets']
         if key_file:
             self.file_location = os.path.join(GoogleAnalyticsHook._key_folder, key_file)
+            logging.info(self.file_location)
 
     def get_service_object(self, name):
         service = GoogleAnalyticsHook._services[name]
@@ -77,8 +80,12 @@ class GoogleAnalyticsHook(BaseHook):
                                                                            service.scopes)
         else:
             raise ValueError('No valid credentials could be found')
+        logging.info(credentials.client_id)
+        # http = credentials.authorize(httplib2.Http())
 
-        return build(service.name, service.version, credentials=credentials)
+        return build('analytics', service.version, credentials=credentials)
+                     # cache_discovery=False,
+                     # discoveryServiceUrl=('https://analyticsreporting.googleapis.com/$discovery/rest'))
 
     def get_management_report(self,
                               view_id,
@@ -102,20 +109,27 @@ class GoogleAnalyticsHook(BaseHook):
                              until,
                              sampling_level,
                              dimensions,
+                             #orderBys,
                              metrics,
                              page_size,
-                             include_empty_rows):
+                             include_empty_rows,
+                             filters,
+                             segment):
 
         analytics = self.get_service_object(name='reporting')
-
+        logging.info(analytics.__dict__.keys())
+        logging.info(analytics._http)
         reportRequest = {
             'viewId': view_id,
             'dateRanges': [{'startDate': since, 'endDate': until}],
             'samplingLevel': sampling_level or 'LARGE',
             'dimensions': dimensions,
+#            'orderBys': orderBys,
             'metrics': metrics,
             'pageSize': page_size or 1000,
-            'includeEmptyRows': include_empty_rows or False
+            'includeEmptyRows': include_empty_rows or False,
+            'filters': filters,
+            'segment': segment
         }
 
         response = (analytics
