@@ -28,6 +28,7 @@ web interface to manage connections you can also supply the key as a json file.
 More details can be found here:
 https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 """
+import json
 
 import time
 import os
@@ -83,8 +84,8 @@ class GoogleAnalyticsHook(BaseHook):
         logging.info(credentials.client_id)
         # http = credentials.authorize(httplib2.Http())
 
-        return build('analytics', service.version, credentials=credentials)
-                     # cache_discovery=False,
+        return build('analyticsreporting', service.version, credentials=credentials,
+                     cache_discovery=False)
                      # discoveryServiceUrl=('https://analyticsreporting.googleapis.com/$discovery/rest'))
 
     def get_management_report(self,
@@ -128,10 +129,10 @@ class GoogleAnalyticsHook(BaseHook):
             'metrics': metrics,
             'pageSize': page_size or 1000,
             'includeEmptyRows': include_empty_rows or False,
-            'filters': filters,
-            'segment': segment
+            'filtersExpression': filters,
+            'segments': segment
         }
-
+        logging.info(json.dumps(reportRequest))
         response = (analytics
                     .reports()
                     .batchGet(body={'reportRequests': [reportRequest]})
